@@ -13,6 +13,8 @@ public class Main extends ApplicationAdapter {
     private static final float WORLD_HEIGHT = 540f;
     private static final float GRAVITY = 1200f;
     private static final float MOVE_SPEED = 210f;
+    private static final float MOVE_ACCELERATION = 900f;
+    private static final float MOVE_DECELERATION = 1400f;
     private static final float CAT_JUMP = 500f;
 
     private SpriteBatch spriteBatch;
@@ -20,6 +22,8 @@ public class Main extends ApplicationAdapter {
     private CatAnimation catAnimation;
     private GameWorld gameWorld;
     private Player player;
+    private HpPlayer hpPlayer;
+    private SkillEffect skillEffect;
     private float catIdleTime;
 
     @Override
@@ -34,6 +38,8 @@ public class Main extends ApplicationAdapter {
         catAnimation = new CatAnimation();
         gameWorld = new GameWorld(WORLD_WIDTH);
         player = new Player(60f, 50f, 34f, 42f);
+        hpPlayer = new HpPlayer();
+        skillEffect = new SkillEffect();
     }
 
     private Texture loadTextureIfExists(String... paths) {
@@ -52,8 +58,7 @@ public class Main extends ApplicationAdapter {
     }
 
     private void update(float delta) {
-        handleInput();
-
+        handleInput(delta);
         if (player.onGround && Math.abs(player.velocityX) < 0.01f) {
             catIdleTime += delta;
         } else {
@@ -61,9 +66,10 @@ public class Main extends ApplicationAdapter {
         }
 
         gameWorld.update(player, delta, GRAVITY);
+        skillEffect.update(delta, WORLD_WIDTH);
     }
 
-    private void handleInput() {
+    private void handleInput(float delta) {
         float horizontal = 0f;
         if (Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
             horizontal -= 1f;
@@ -78,23 +84,45 @@ public class Main extends ApplicationAdapter {
             player.facing = 1;
         }
 
-        player.velocityX = horizontal * MOVE_SPEED;
+        float targetVelocityX = horizontal * MOVE_SPEED;
+        float changeRate = horizontal == 0f ? MOVE_DECELERATION : MOVE_ACCELERATION;
+        player.velocityX = moveTowards(player.velocityX, targetVelocityX, changeRate * delta);
 
         if ((Gdx.input.isKeyJustPressed(Input.Keys.W) || Gdx.input.isKeyJustPressed(Input.Keys.UP))
             && player.onGround) {
             player.velocityY = CAT_JUMP;
             player.onGround = false;
         }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.H)) {
+            player.setHp(player.getHp() - 10);
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.J)) {
+            player.setHp(player.getHp() + 10);
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+            skillEffect.start(player);
+        }
+    }
+
+    private float moveTowards(float current, float target, float maxChange) {
+        if (Math.abs(target - current) <= maxChange) {
+            return target;
+        }
+        return current + Math.signum(target - current) * maxChange;
     }
 
     private void drawWorld() {
         ScreenUtils.clear(0.08f, 0.12f, 0.14f, 1f);
 
-        spriteBatch.begin();
         if (backgroundTexture != null) {
+            spriteBatch.begin();
             spriteBatch.draw(backgroundTexture, 0f, 0f, WORLD_WIDTH, WORLD_HEIGHT);
+            spriteBatch.end();
         }
+        hpPlayer.draw(spriteBatch, player, WORLD_HEIGHT);
 
+        spriteBatch.begin();
         boolean isIdle = player.onGround && Math.abs(player.velocityX) < 0.01f;
         TextureRegion catSprite = isIdle
             ? catAnimation.getIdleFrame(catIdleTime)
@@ -102,6 +130,7 @@ public class Main extends ApplicationAdapter {
         if (catSprite != null) {
             drawCatSprite(catSprite, player.facing > 0);
         }
+        skillEffect.draw(spriteBatch);
         spriteBatch.end();
     }
 
@@ -126,6 +155,8 @@ public class Main extends ApplicationAdapter {
     @Override
     public void dispose() {
         if (backgroundTexture != null) backgroundTexture.dispose();
+        hpPlayer.dispose();
+        skillEffect.dispose();
         catAnimation.dispose();
         spriteBatch.dispose();
     }
