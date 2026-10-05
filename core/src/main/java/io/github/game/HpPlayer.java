@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 
 public class HpPlayer {
+    private static final Color LIGHT_GREEN = new Color(0.56f, 0.93f, 0.56f, 1f);
     private static final float FRAME_X = 20f;
     private static final float FRAME_Y_OFFSET = 92f;
     private static final float FRAME_WIDTH = 235f;
@@ -45,8 +46,10 @@ public class HpPlayer {
     }
 
     private Color getHealthColor(float healthPercent) {
-        if (healthPercent > 0.5f) {
+        if (healthPercent >= 0.8f) {
             return Color.GREEN;
+        } else if (healthPercent > 0.5f) {
+            return LIGHT_GREEN;
         } else if (healthPercent > 0.2f) {
             return Color.YELLOW;
         }
