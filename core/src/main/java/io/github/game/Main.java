@@ -20,7 +20,7 @@ public class Main extends ApplicationAdapter {
     private static final float CAT_JUMP = 500f;
     private static final float GROUND_Y = 30f;
 
-    private static final int STAGE_COUNT = 2;
+    private static final int STAGE_COUNT = 1;
 
     /** PLAYING -> BOSS_DEFEATED (walk to the drop) -> SKILL_CARD -> next stage or CHAMPION. */
     private enum GameState { PLAYING, BOSS_DEFEATED, SKILL_CARD, CHAMPION, LOSE }
@@ -79,10 +79,8 @@ public class Main extends ApplicationAdapter {
         drawWorld();
     }
 
+    /** Stage list. Add the next bosses here. */
     private Boss createBoss(int index) {
-        if (index == 0) {
-            return new TeacherBoss(WORLD_WIDTH, GROUND_Y);
-        }
         return new DevilBoss(WORLD_WIDTH, GROUND_Y);
     }
 
