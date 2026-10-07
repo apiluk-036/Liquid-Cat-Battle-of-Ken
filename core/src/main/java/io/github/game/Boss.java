@@ -8,15 +8,16 @@ import com.badlogic.gdx.math.Rectangle;
 
 /**
  * Base class for every boss.
- * Shared rules: moves up and down automatically, fires a laser every 15 seconds,
- * and each boss has its own special skill (implemented by the subclass).
+ * Shared rules: moves up and down automatically, fires lasers,
+ * each boss has its own special skills (implemented by the subclass)
+ * and drops a skill for the player when defeated.
  */
 public abstract class Boss {
     protected static final float MOVE_SPEED_MEDIUM = 80f;
     private static final float HURT_FLASH_TIME = 0.12f;
 
     protected final String name;
-    protected final String rewardSkill;
+    protected final SkillType rewardSkill;
     protected final int maxHp;
     protected int hp;
 
@@ -33,7 +34,7 @@ public abstract class Boss {
     private final BossLaser laser;
     private final Rectangle hitBox = new Rectangle();
 
-    protected Boss(String name, String rewardSkill, int maxHp, String texturePath,
+    protected Boss(String name, SkillType rewardSkill, int maxHp, String texturePath, BossLaser laser,
                    float x, float minY, float maxY, float width, float height) {
         this.name = name;
         this.rewardSkill = rewardSkill;
@@ -46,7 +47,7 @@ public abstract class Boss {
         this.width = width;
         this.height = height;
         this.texture = Gdx.files.internal(texturePath).exists() ? new Texture(texturePath) : null;
-        this.laser = new BossLaser();
+        this.laser = laser;
     }
 
     public void update(float delta, Player player) {
@@ -77,6 +78,15 @@ public abstract class Boss {
 
     protected abstract void resetSpecialSkill();
 
+    /** Effects drawn with shapes (shield bubble, magma...). Called inside shapeRenderer.begin(Filled). */
+    protected void drawSpecialShapes(ShapeRenderer shapeRenderer) {
+    }
+
+    /** While shielded the boss takes no damage. */
+    public boolean isShielded() {
+        return false;
+    }
+
     public void drawSprite(SpriteBatch spriteBatch) {
         if (texture == null || isDefeated()) {
             return;
@@ -91,16 +101,19 @@ public abstract class Boss {
 
     public void drawShapes(ShapeRenderer shapeRenderer) {
         if (!isDefeated()) {
+            drawSpecialShapes(shapeRenderer);
             laser.draw(shapeRenderer);
         }
     }
 
-    public void takeDamage(int damage) {
-        if (isDefeated()) {
-            return;
+    /** Returns true if the damage was applied. */
+    public boolean takeDamage(int damage) {
+        if (isDefeated() || isShielded()) {
+            return false;
         }
         hp = Math.max(0, hp - damage);
         hurtTimer = HURT_FLASH_TIME;
+        return true;
     }
 
     public void reset() {
@@ -115,6 +128,14 @@ public abstract class Boss {
     /** Body area only (the smoke above the head is not hittable). */
     public Rectangle getHitBox() {
         return hitBox.set(x + width * 0.15f, y + height * 0.05f, width * 0.65f, height * 0.6f);
+    }
+
+    public float getCenterX() {
+        return x + width / 2f;
+    }
+
+    public float getCenterY() {
+        return y + height / 2f;
     }
 
     /** Where the laser comes out of (the boss mouth). */
@@ -139,7 +160,7 @@ public abstract class Boss {
         return name;
     }
 
-    public String getRewardSkill() {
+    public SkillType getRewardSkill() {
         return rewardSkill;
     }
 

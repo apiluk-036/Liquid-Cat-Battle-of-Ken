@@ -27,7 +27,7 @@ public final class TeacherBoss extends Boss {
     private final float worldWidth;
 
     public TeacherBoss(float worldWidth, float groundY) {
-        super("final class Teacher", "Candy (OOP)", MAX_HP, "boss/teacher.png",
+        super("final class Teacher", SkillType.CANDY, MAX_HP, "boss/teacher.png", BossLaser.targeted(),
             worldWidth - 230f, groundY, 200f, 200f, 219f);
         this.worldWidth = worldWidth;
         candyTexture = Gdx.files.internal("boss/candy.png").exists()
@@ -62,8 +62,8 @@ public final class TeacherBoss extends Boss {
     private void throwCandy(Player player) {
         float startX = getHandX() - CANDY_SIZE / 2f;
         float startY = getHandY() - CANDY_SIZE / 2f;
-        float targetX = player.x + player.width / 2f - CANDY_SIZE / 2f;
-        float targetY = player.y + player.height / 2f - CANDY_SIZE / 2f;
+        float targetX = player.getCenterX() - CANDY_SIZE / 2f;
+        float targetY = player.getCenterY() - CANDY_SIZE / 2f;
         float dx = targetX - startX;
         float dy = targetY - startY;
         float length = (float) Math.sqrt(dx * dx + dy * dy);

@@ -20,7 +20,10 @@ public class Main extends ApplicationAdapter {
     private static final float CAT_JUMP = 500f;
     private static final float GROUND_Y = 30f;
 
-    private enum GameState { PLAYING, WIN, LOSE }
+    private static final int STAGE_COUNT = 2;
+
+    /** PLAYING -> BOSS_DEFEATED (walk to the drop) -> SKILL_CARD -> next stage or CHAMPION. */
+    private enum GameState { PLAYING, BOSS_DEFEATED, SKILL_CARD, CHAMPION, LOSE }
 
     private SpriteBatch spriteBatch;
     private Texture backgroundTexture;
@@ -35,6 +38,10 @@ public class Main extends ApplicationAdapter {
     private Boss boss;
     private GameHud gameHud;
     private GameState gameState = GameState.PLAYING;
+    private PlayerSkills playerSkills;
+    private SkillDrop skillDrop;
+    private SkillType collectedSkill;
+    private int stageIndex;
 
     @Override
     public void create() {
@@ -50,8 +57,9 @@ public class Main extends ApplicationAdapter {
         player = new Player(60f, 50f, 34f, 42f);
         hpPlayer = new HpPlayer();
         skillEffect = new SkillEffect();
-        boss = new TeacherBoss(WORLD_WIDTH, GROUND_Y);
         gameHud = new GameHud();
+        playerSkills = new PlayerSkills();
+        startStage(0);
         floatingPlatforms = new FloatingPlatforms();
         gameWorld.addOneWayPlatforms(floatingPlatforms.getSurfaces());
     }
@@ -71,12 +79,55 @@ public class Main extends ApplicationAdapter {
         drawWorld();
     }
 
+    private Boss createBoss(int index) {
+        if (index == 0) {
+            return new TeacherBoss(WORLD_WIDTH, GROUND_Y);
+        }
+        return new DevilBoss(WORLD_WIDTH, GROUND_Y);
+    }
+
+    /** Starts a stage. Collected skills are kept. */
+    private void startStage(int index) {
+        if (boss != null) {
+            boss.dispose();
+        }
+        disposeDrop();
+        stageIndex = index;
+        boss = createBoss(index);
+        player.reset();
+        skillEffect.reset();
+        playerSkills.resetForStage();
+        collectedSkill = null;
+        catIdleTime = 0f;
+        gameState = GameState.PLAYING;
+    }
+
+    /** Lose = start over from stage 1, and every collected skill is lost. */
+    private void restartGame() {
+        playerSkills.clearAll();
+        startStage(0);
+    }
+
     private void update(float delta) {
-        if (gameState != GameState.PLAYING) {
-            if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
-                restart();
-            }
-            return;
+        switch (gameState) {
+            case SKILL_CARD:
+                if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)
+                    || gameHud.isNextClicked(WORLD_WIDTH, WORLD_HEIGHT)) {
+                    if (stageIndex + 1 < STAGE_COUNT) {
+                        startStage(stageIndex + 1);
+                    } else {
+                        gameState = GameState.CHAMPION;
+                    }
+                }
+                return;
+            case CHAMPION:
+            case LOSE:
+                if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+                    restartGame();
+                }
+                return;
+            default:
+                break;
         }
 
         handleInput(delta);
@@ -86,10 +137,16 @@ public class Main extends ApplicationAdapter {
 
         gameWorld.update(player, delta, GRAVITY);
         float rightLimit = boss.isDefeated() ? WORLD_WIDTH : boss.getHitBox().x;
-        player.x = Math.max(0f, Math.min(rightLimit - player.width, player.x));
+        player.x = Math.max(0f, Math.min(rightLimit - player.getBodyRightOffset(), player.x));
         skillEffect.update(delta, WORLD_WIDTH);
         boss.update(delta, player);
-        updateCombat();
+        playerSkills.update(delta, boss, WORLD_WIDTH);
+
+        if (gameState == GameState.PLAYING) {
+            updateCombat();
+        } else if (gameState == GameState.BOSS_DEFEATED) {
+            updateDropPickup(delta);
+        }
     }
 
     private void updateCombat() {
@@ -99,19 +156,28 @@ public class Main extends ApplicationAdapter {
         }
 
         if (boss.isDefeated()) {
-            gameState = GameState.WIN;
+            skillDrop = new SkillDrop(boss.getRewardSkill(), boss.getCenterX() - 60f, boss.getCenterY());
+            gameState = GameState.BOSS_DEFEATED;
         } else if (player.isDead()) {
             gameState = GameState.LOSE;
         }
     }
 
-    /** Lose = start over. Skills obtained from a boss are not kept when restarting. */
-    private void restart() {
-        player.reset();
-        boss.reset();
-        skillEffect.reset();
-        catIdleTime = 0f;
-        gameState = GameState.PLAYING;
+    private void updateDropPickup(float delta) {
+        skillDrop.update(delta);
+        if (skillDrop.isTouching(player)) {
+            collectedSkill = skillDrop.getSkill();
+            playerSkills.add(collectedSkill);
+            disposeDrop();
+            gameState = GameState.SKILL_CARD;
+        }
+    }
+
+    private void disposeDrop() {
+        if (skillDrop != null) {
+            skillDrop.dispose();
+            skillDrop = null;
+        }
     }
 
     private void handleInput(float delta) {
@@ -148,6 +214,12 @@ public class Main extends ApplicationAdapter {
         if (Gdx.input.isKeyJustPressed(Input.Keys.E)) {
             skillEffect.start(player);
         }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.Q)) {
+            playerSkills.use(SkillType.SHIELD, player);
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.F)) {
+            playerSkills.use(SkillType.CANDY, player);
+        }
     }
 
     private float moveTowards(float current, float target, float maxChange) {
@@ -179,6 +251,7 @@ public class Main extends ApplicationAdapter {
             drawCatSprite(catSprite, player.facing > 0);
         }
         skillEffect.draw(spriteBatch);
+        playerSkills.drawSprites(spriteBatch);
         spriteBatch.end();
 
         ShapeRenderer shapeRenderer = gameHud.getShapeRenderer();
@@ -186,12 +259,26 @@ public class Main extends ApplicationAdapter {
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         boss.drawShapes(shapeRenderer);
+        playerSkills.drawShapes(shapeRenderer, player);
+        if (skillDrop != null) {
+            skillDrop.drawShapes(shapeRenderer);
+        }
         shapeRenderer.end();
 
-        gameHud.draw(spriteBatch, boss, skillEffect, WORLD_WIDTH, WORLD_HEIGHT);
-        if (gameState != GameState.PLAYING) {
-            gameHud.drawResult(spriteBatch, gameState == GameState.WIN, boss.getRewardSkill(),
+        if (skillDrop != null) {
+            spriteBatch.begin();
+            skillDrop.drawSprite(spriteBatch);
+            spriteBatch.end();
+        }
+
+        gameHud.draw(spriteBatch, boss, skillEffect, playerSkills, stageIndex + 1, WORLD_WIDTH, WORLD_HEIGHT);
+        if (gameState == GameState.SKILL_CARD && collectedSkill != null) {
+            gameHud.drawSkillCard(spriteBatch, collectedSkill, stageIndex + 1 < STAGE_COUNT,
                 WORLD_WIDTH, WORLD_HEIGHT);
+        } else if (gameState == GameState.CHAMPION) {
+            gameHud.drawChampion(spriteBatch, playerSkills, WORLD_WIDTH, WORLD_HEIGHT);
+        } else if (gameState == GameState.LOSE) {
+            gameHud.drawGameOver(spriteBatch, WORLD_WIDTH, WORLD_HEIGHT);
         }
     }
 
@@ -219,6 +306,8 @@ public class Main extends ApplicationAdapter {
         hpPlayer.dispose();
         skillEffect.dispose();
         boss.dispose();
+        disposeDrop();
+        playerSkills.dispose();
         gameHud.dispose();
         floatingPlatforms.dispose();
         catAnimation.dispose();
