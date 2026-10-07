@@ -8,6 +8,7 @@ import com.badlogic.gdx.math.Rectangle;
  * Boss laser. Shows a warning line first, then fires horizontal beam(s).
  * - targeted(): 1 beam at the player's height every 15 s (every boss).
  * - randomPair(): 2 beams, one low and one high, at random heights every 5 s.
+ * - randomSingle(): 1 beam at a random height every 5 s.
  */
 public class BossLaser {
     private static final float WARNING_TIME = 1.2f;
@@ -44,6 +45,10 @@ public class BossLaser {
 
     public static BossLaser targeted() {
         return new BossLaser(15f, 6f, 1, false, 25);
+    }
+
+    public static BossLaser randomSingle() {
+        return new BossLaser(5f, 3f, 1, true, 20);
     }
 
     public static BossLaser randomPair() {
@@ -87,6 +92,10 @@ public class BossLaser {
     private void chooseBeamHeights(Player player) {
         if (!randomHeights) {
             beamYs[0] = player.getCenterY();
+            return;
+        }
+        if (beamYs.length == 1) {
+            beamYs[0] = MathUtils.random(LOW_MIN_Y, HIGH_MAX_Y);
             return;
         }
         for (int index = 0; index < beamYs.length; index++) {

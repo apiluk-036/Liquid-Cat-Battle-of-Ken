@@ -7,14 +7,14 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
 
 /**
- * Boss 2: Flame Devil. Three skills:
+ * Boss 1: Flame Devil. Three skills:
  * 1) Magma rain   - a magma ball falls at a random spot on the map every 2 s.
- * 2) Double laser - 2 lasers (one low, one high) at random heights every 5 s.
+ * 2) Laser        - 1 laser at a random height every 5 s.
  * 3) Shield       - an area shield makes the boss invincible for 3 s, every 10 s.
  * Drops the "Shield" skill when defeated.
  */
 public final class DevilBoss extends Boss {
-    private static final int MAX_HP = 600;
+    private static final int MAX_HP = 150;
 
     private static final float MAGMA_INTERVAL = 2f;
     private static final float MAGMA_FIRST_DELAY = 1.5f;
@@ -38,7 +38,7 @@ public final class DevilBoss extends Boss {
     private float effectTime;
 
     public DevilBoss(float worldWidth, float groundY) {
-        super("Flame Devil", SkillType.SHIELD, MAX_HP, "boss/devil.png", BossLaser.randomPair(),
+        super("Flame Devil", SkillType.SHIELD, MAX_HP, "boss/devil.png", BossLaser.randomSingle(),
             worldWidth - 200f, groundY, 170f, 170f, 249f);
     }
 
