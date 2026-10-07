@@ -6,8 +6,14 @@ import com.badlogic.gdx.utils.Array;
 public class GameWorld {
     private final Array<Rectangle> solidBlocks = new Array<>();
 
+    private final Array<Rectangle> oneWayPlatforms = new Array<>();
+
     public GameWorld(float width) {
         solidBlocks.add(new Rectangle(0f, 0f, width, 30f));
+    }
+
+    public void addOneWayPlatforms(Array<Rectangle> platforms) {
+        oneWayPlatforms.addAll(platforms);
     }
 
     public void update(Player player, float delta, float gravity) {
@@ -51,6 +57,19 @@ public class GameWorld {
                 }
                 player.velocityY = 0f;
                 return;
+            }
+        }
+        if (player.velocityY <= 0) {
+            for (Rectangle platform : oneWayPlatforms) {
+                float top = platform.y + platform.height;
+                boolean abovePlatform = player.x + player.width > platform.x
+                    && player.x < platform.x + platform.width;
+                if (abovePlatform && player.y >= top && targetY <= top) {
+                    player.y = top;
+                    player.velocityY = 0f;
+                    player.onGround = true;
+                    return;
+                }
             }
         }
         player.y = targetY;

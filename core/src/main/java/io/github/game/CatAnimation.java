@@ -35,12 +35,13 @@ public class CatAnimation {
             if (!Gdx.files.internal(path).exists()) {
                 break;
             }
-            Texture texture = new Texture(path);
+            Texture texture = new Texture(Gdx.files.internal(path), true);
+            texture.setFilter(Texture.TextureFilter.MipMapLinearLinear, Texture.TextureFilter.Linear);
             idleTextures.add(texture);
             frames.add(new TextureRegion(texture));
         }
         idleAnimation = frames.size > 0
-            ? new Animation<>(1f / 12f, frames, Animation.PlayMode.LOOP)
+            ? new Animation<>(1f / 30f, frames, Animation.PlayMode.LOOP)
             : null;
     }
 

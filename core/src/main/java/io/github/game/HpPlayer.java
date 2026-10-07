@@ -3,6 +3,7 @@ package io.github.game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 
@@ -15,12 +16,20 @@ public class HpPlayer {
     private static final float SOURCE_WIDTH = 157f;
     private static final float SOURCE_HEIGHT = 56f;
 
+    private static final String NAME = "Liquid Cat";
+    private static final Color NAME_COLOR = new Color(0.85f, 0.94f, 0.48f, 1f);
+    private static final Color NAME_SHADOW = new Color(0.07f, 0.08f, 0.14f, 1f);
+
     private final Texture frameTexture;
     private final ShapeRenderer shapeRenderer;
+    private final BitmapFont nameFont;
 
     public HpPlayer() {
         frameTexture = loadTexture("hp_player/hp_full.png");
         shapeRenderer = new ShapeRenderer();
+        nameFont = new BitmapFont();
+        nameFont.getRegion().getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        nameFont.getData().setScale(1.2f);
     }
 
     public void draw(SpriteBatch spriteBatch, Player player, float worldHeight) {
@@ -42,6 +51,11 @@ public class HpPlayer {
 
         spriteBatch.begin();
         spriteBatch.draw(frameTexture, FRAME_X, frameY, FRAME_WIDTH, FRAME_HEIGHT);
+        float nameY = frameY + FRAME_HEIGHT + 2f;
+        nameFont.setColor(NAME_SHADOW);
+        nameFont.draw(spriteBatch, NAME, fillX + 1.5f, nameY - 1.5f);
+        nameFont.setColor(NAME_COLOR);
+        nameFont.draw(spriteBatch, NAME, fillX, nameY);
         spriteBatch.end();
     }
 
@@ -65,5 +79,6 @@ public class HpPlayer {
             frameTexture.dispose();
         }
         shapeRenderer.dispose();
+        nameFont.dispose();
     }
 }

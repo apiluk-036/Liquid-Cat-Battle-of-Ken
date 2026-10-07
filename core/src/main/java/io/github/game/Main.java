@@ -29,6 +29,7 @@ public class Main extends ApplicationAdapter {
     private Player player;
     private HpPlayer hpPlayer;
     private SkillEffect skillEffect;
+    private FloatingPlatforms floatingPlatforms;
     private float catIdleTime;
     private float blinkTime;
     private Boss boss;
@@ -51,6 +52,8 @@ public class Main extends ApplicationAdapter {
         skillEffect = new SkillEffect();
         boss = new TeacherBoss(WORLD_WIDTH, GROUND_Y);
         gameHud = new GameHud();
+        floatingPlatforms = new FloatingPlatforms();
+        gameWorld.addOneWayPlatforms(floatingPlatforms.getSurfaces());
     }
 
     private Texture loadTextureIfExists(String... paths) {
@@ -79,11 +82,7 @@ public class Main extends ApplicationAdapter {
         handleInput(delta);
         player.update(delta);
         blinkTime += delta;
-        if (player.onGround && Math.abs(player.velocityX) < 0.01f) {
-            catIdleTime += delta;
-        } else {
-            catIdleTime = 0f;
-        }
+        catIdleTime += delta;
 
         gameWorld.update(player, delta, GRAVITY);
         float rightLimit = boss.isDefeated() ? WORLD_WIDTH : boss.getHitBox().x;
@@ -169,11 +168,12 @@ public class Main extends ApplicationAdapter {
         hpPlayer.draw(spriteBatch, player, WORLD_HEIGHT);
 
         spriteBatch.begin();
+        floatingPlatforms.draw(spriteBatch);
         boss.drawSprite(spriteBatch);
-        boolean isIdle = player.onGround && Math.abs(player.velocityX) < 0.01f;
-        TextureRegion catSprite = isIdle
-            ? catAnimation.getIdleFrame(catIdleTime)
-            : getMovingCatSprite();
+        TextureRegion catSprite = catAnimation.getIdleFrame(catIdleTime);
+        if (catSprite == null) {
+            catSprite = getMovingCatSprite();
+        }
         boolean blinkHidden = player.isInvincible() && ((int) (blinkTime * 10f)) % 2 == 1;
         if (catSprite != null && !blinkHidden) {
             drawCatSprite(catSprite, player.facing > 0);
@@ -220,6 +220,7 @@ public class Main extends ApplicationAdapter {
         skillEffect.dispose();
         boss.dispose();
         gameHud.dispose();
+        floatingPlatforms.dispose();
         catAnimation.dispose();
         spriteBatch.dispose();
     }
