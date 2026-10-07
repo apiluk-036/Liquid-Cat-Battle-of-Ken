@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
 
 public class SkillEffect {
@@ -12,12 +13,19 @@ public class SkillEffect {
     private static final float EFFECT_WIDTH = 210f;
     private static final float EFFECT_HEIGHT = 120f;
     private static final float MOVE_SPEED = 420f;
+    /** Normal attack: 10 damage, 5 shots in a row (0.5 s apart), then 2 s cooldown. */
+    public static final int DAMAGE = 10;
+    public static final int MAX_SHOTS = 5;
     private static final float COOLDOWN = 0.5f;
+    private static final float RELOAD_TIME = 2f;
 
     private final Array<Texture> textures = new Array<>();
     private final Array<ActiveEffect> activeEffects = new Array<>();
     private final Animation<TextureRegion> animation;
+    private final Rectangle hitBox = new Rectangle();
     private float cooldownRemaining;
+    private int shotsLeft = MAX_SHOTS;
+    private float reloadRemaining;
 
     public SkillEffect() {
         Array<TextureRegion> frames = new Array<>();
@@ -35,14 +43,60 @@ public class SkillEffect {
     }
 
     public void start(Player player) {
-        if (animation != null && cooldownRemaining <= 0f) {
+        if (animation != null && cooldownRemaining <= 0f && reloadRemaining <= 0f) {
             activeEffects.add(new ActiveEffect(player));
             cooldownRemaining = COOLDOWN;
+            shotsLeft--;
+            if (shotsLeft <= 0) {
+                reloadRemaining = RELOAD_TIME;
+            }
         }
+    }
+
+    /** Removes every attack that touches the target and returns how many hit. */
+    public int collectHits(Rectangle target) {
+        int hits = 0;
+        for (int index = activeEffects.size - 1; index >= 0; index--) {
+            ActiveEffect effect = activeEffects.get(index);
+            hitBox.set(effect.x + EFFECT_WIDTH * 0.15f, effect.y + EFFECT_HEIGHT * 0.2f,
+                EFFECT_WIDTH * 0.7f, EFFECT_HEIGHT * 0.6f);
+            if (hitBox.overlaps(target)) {
+                activeEffects.removeIndex(index);
+                hits++;
+            }
+        }
+        return hits;
+    }
+
+    public int getShotsLeft() {
+        return shotsLeft;
+    }
+
+    public boolean isReloading() {
+        return reloadRemaining > 0f;
+    }
+
+    /** 0 = just started reloading, 1 = ready. */
+    public float getReloadProgress() {
+        return 1f - reloadRemaining / RELOAD_TIME;
+    }
+
+    public void reset() {
+        activeEffects.clear();
+        cooldownRemaining = 0f;
+        reloadRemaining = 0f;
+        shotsLeft = MAX_SHOTS;
     }
 
     public void update(float delta, float worldWidth) {
         cooldownRemaining = Math.max(0f, cooldownRemaining - delta);
+        if (reloadRemaining > 0f) {
+            reloadRemaining -= delta;
+            if (reloadRemaining <= 0f) {
+                reloadRemaining = 0f;
+                shotsLeft = MAX_SHOTS;
+            }
+        }
 
         for (int index = activeEffects.size - 1; index >= 0; index--) {
             ActiveEffect effect = activeEffects.get(index);

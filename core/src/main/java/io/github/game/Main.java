@@ -3,9 +3,11 @@ package io.github.game;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.utils.ScreenUtils;
 
 public class Main extends ApplicationAdapter {
@@ -16,6 +18,9 @@ public class Main extends ApplicationAdapter {
     private static final float MOVE_ACCELERATION = 900f;
     private static final float MOVE_DECELERATION = 1400f;
     private static final float CAT_JUMP = 500f;
+    private static final float GROUND_Y = 30f;
+
+    private enum GameState { PLAYING, WIN, LOSE }
 
     private SpriteBatch spriteBatch;
     private Texture backgroundTexture;
@@ -25,6 +30,10 @@ public class Main extends ApplicationAdapter {
     private HpPlayer hpPlayer;
     private SkillEffect skillEffect;
     private float catIdleTime;
+    private float blinkTime;
+    private Boss boss;
+    private GameHud gameHud;
+    private GameState gameState = GameState.PLAYING;
 
     @Override
     public void create() {
@@ -40,6 +49,8 @@ public class Main extends ApplicationAdapter {
         player = new Player(60f, 50f, 34f, 42f);
         hpPlayer = new HpPlayer();
         skillEffect = new SkillEffect();
+        boss = new TeacherBoss(WORLD_WIDTH, GROUND_Y);
+        gameHud = new GameHud();
     }
 
     private Texture loadTextureIfExists(String... paths) {
@@ -58,7 +69,16 @@ public class Main extends ApplicationAdapter {
     }
 
     private void update(float delta) {
+        if (gameState != GameState.PLAYING) {
+            if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+                restart();
+            }
+            return;
+        }
+
         handleInput(delta);
+        player.update(delta);
+        blinkTime += delta;
         if (player.onGround && Math.abs(player.velocityX) < 0.01f) {
             catIdleTime += delta;
         } else {
@@ -66,7 +86,33 @@ public class Main extends ApplicationAdapter {
         }
 
         gameWorld.update(player, delta, GRAVITY);
+        float rightLimit = boss.isDefeated() ? WORLD_WIDTH : boss.getHitBox().x;
+        player.x = Math.max(0f, Math.min(rightLimit - player.width, player.x));
         skillEffect.update(delta, WORLD_WIDTH);
+        boss.update(delta, player);
+        updateCombat();
+    }
+
+    private void updateCombat() {
+        int hits = skillEffect.collectHits(boss.getHitBox());
+        if (hits > 0) {
+            boss.takeDamage(hits * SkillEffect.DAMAGE);
+        }
+
+        if (boss.isDefeated()) {
+            gameState = GameState.WIN;
+        } else if (player.isDead()) {
+            gameState = GameState.LOSE;
+        }
+    }
+
+    /** Lose = start over. Skills obtained from a boss are not kept when restarting. */
+    private void restart() {
+        player.reset();
+        boss.reset();
+        skillEffect.reset();
+        catIdleTime = 0f;
+        gameState = GameState.PLAYING;
     }
 
     private void handleInput(float delta) {
@@ -123,15 +169,30 @@ public class Main extends ApplicationAdapter {
         hpPlayer.draw(spriteBatch, player, WORLD_HEIGHT);
 
         spriteBatch.begin();
+        boss.drawSprite(spriteBatch);
         boolean isIdle = player.onGround && Math.abs(player.velocityX) < 0.01f;
         TextureRegion catSprite = isIdle
             ? catAnimation.getIdleFrame(catIdleTime)
             : getMovingCatSprite();
-        if (catSprite != null) {
+        boolean blinkHidden = player.isInvincible() && ((int) (blinkTime * 10f)) % 2 == 1;
+        if (catSprite != null && !blinkHidden) {
             drawCatSprite(catSprite, player.facing > 0);
         }
         skillEffect.draw(spriteBatch);
         spriteBatch.end();
+
+        ShapeRenderer shapeRenderer = gameHud.getShapeRenderer();
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        boss.drawShapes(shapeRenderer);
+        shapeRenderer.end();
+
+        gameHud.draw(spriteBatch, boss, skillEffect, WORLD_WIDTH, WORLD_HEIGHT);
+        if (gameState != GameState.PLAYING) {
+            gameHud.drawResult(spriteBatch, gameState == GameState.WIN, boss.getRewardSkill(),
+                WORLD_WIDTH, WORLD_HEIGHT);
+        }
     }
 
     private TextureRegion getMovingCatSprite() {
@@ -157,6 +218,8 @@ public class Main extends ApplicationAdapter {
         if (backgroundTexture != null) backgroundTexture.dispose();
         hpPlayer.dispose();
         skillEffect.dispose();
+        boss.dispose();
+        gameHud.dispose();
         catAnimation.dispose();
         spriteBatch.dispose();
     }
