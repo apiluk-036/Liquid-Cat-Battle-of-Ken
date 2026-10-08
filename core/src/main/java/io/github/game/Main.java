@@ -20,7 +20,7 @@ public class Main extends ApplicationAdapter {
     private static final float CAT_JUMP = 500f;
     private static final float GROUND_Y = 30f;
 
-    private static final int STAGE_COUNT = 1;
+    private static final int STAGE_COUNT = 2;
 
     /** PLAYING -> BOSS_DEFEATED (walk to the drop) -> SKILL_CARD -> next stage or CHAMPION. */
     private enum GameState { PLAYING, BOSS_DEFEATED, SKILL_CARD, CHAMPION, LOSE }
@@ -81,7 +81,10 @@ public class Main extends ApplicationAdapter {
 
     /** Stage list. Add the next bosses here. */
     private Boss createBoss(int index) {
-        return new DevilBoss(WORLD_WIDTH, GROUND_Y);
+        if (index == 0) {
+            return new DevilBoss(WORLD_WIDTH, GROUND_Y);
+        }
+        return new TeacherBoss(WORLD_WIDTH, GROUND_Y);
     }
 
     /** Starts a stage. Collected skills are kept. */
@@ -216,7 +219,7 @@ public class Main extends ApplicationAdapter {
             playerSkills.use(SkillType.SHIELD, player);
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.F)) {
-            playerSkills.use(SkillType.CANDY, player);
+            playerSkills.use(SkillType.GIANT_CANDY, player);
         }
     }
 

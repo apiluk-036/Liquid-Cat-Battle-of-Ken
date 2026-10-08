@@ -19,8 +19,8 @@ import java.util.Set;
  */
 public class PlayerSkills {
     private static final float SHIELD_DURATION = 3f;
-    private static final float CANDY_SPEED = 420f;
-    private static final float CANDY_SIZE = 40f;
+    private static final float CANDY_SPEED = 360f;
+    private static final float CANDY_SIZE = 72f;
     private static final float CANDY_SPIN_SPEED = 720f;
     private static final int CANDY_DAMAGE = 50;
 
@@ -32,8 +32,8 @@ public class PlayerSkills {
     private float effectTime;
 
     public PlayerSkills() {
-        candyTexture = Gdx.files.internal(SkillType.CANDY.iconPath).exists()
-            ? new Texture(SkillType.CANDY.iconPath) : null;
+        candyTexture = Gdx.files.internal(SkillType.GIANT_CANDY.iconPath).exists()
+            ? new Texture(SkillType.GIANT_CANDY.iconPath) : null;
     }
 
     public void add(SkillType skill) {
@@ -59,7 +59,7 @@ public class PlayerSkills {
         }
         if (skill == SkillType.SHIELD) {
             player.activateShield(SHIELD_DURATION);
-        } else if (skill == SkillType.CANDY) {
+        } else if (skill == SkillType.GIANT_CANDY) {
             float startX = player.getCenterX() - CANDY_SIZE / 2f;
             float startY = player.getCenterY() - CANDY_SIZE / 2f;
             candies.add(new CandyShot(startX, startY, player.facing));
