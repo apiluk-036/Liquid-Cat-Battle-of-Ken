@@ -22,8 +22,11 @@ public class Main extends ApplicationAdapter {
 
     private static final int STAGE_COUNT = 3;
 
-    /** TITLE -> PLAYING -> BOSS_DEFEATED (walk to the drop) -> SKILL_CARD -> next stage or CHAMPION. */
-    private enum GameState { TITLE, PLAYING, BOSS_DEFEATED, SKILL_CARD, CHAMPION, LOSE }
+    /**
+     * TITLE -> STAGE_SELECT -> PLAYING -> BOSS_DEFEATED (walk to the drop) -> SKILL_CARD
+     * -> next stage or CHAMPION.
+     */
+    private enum GameState { TITLE, STAGE_SELECT, PLAYING, BOSS_DEFEATED, SKILL_CARD, CHAMPION, LOSE }
 
     private SpriteBatch spriteBatch;
     private Texture backgroundTexture;
@@ -37,7 +40,8 @@ public class Main extends ApplicationAdapter {
     private float blinkTime;
     private Boss boss;
     private GameHud gameHud;
-    private GameState gameState = GameState.PLAYING;
+    private StageSelectScreen stageSelect;
+    private GameState gameState = GameState.TITLE;
     private PlayerSkills playerSkills;
     private SkillDrop skillDrop;
     private SkillType collectedSkill;
@@ -61,6 +65,7 @@ public class Main extends ApplicationAdapter {
         skillEffect = new SkillEffect();
         gameHud = new GameHud();
         playerSkills = new PlayerSkills();
+        stageSelect = new StageSelectScreen(WORLD_WIDTH, WORLD_HEIGHT, STAGE_COUNT);
         startStage(0);
         floatingPlatforms = new FloatingPlatforms();
         gameWorld.addOneWayPlatforms(floatingPlatforms.getSurfaces());
@@ -81,7 +86,11 @@ public class Main extends ApplicationAdapter {
     @Override
     public void render() {
         update(Gdx.graphics.getDeltaTime());
-        drawWorld();
+        if (gameState == GameState.STAGE_SELECT) {
+            stageSelect.draw(spriteBatch, gameHud.getShapeRenderer());
+        } else {
+            drawWorld();
+        }
     }
 
     /** Stage list. Add the next bosses here. */
@@ -111,10 +120,10 @@ public class Main extends ApplicationAdapter {
         gameState = GameState.PLAYING;
     }
 
-    /** Lose = start over from stage 1, and every collected skill is lost. */
+    /** Lose = back to the stage select, and every collected skill is lost. */
     private void restartGame() {
         playerSkills.clearAll();
-        startStage(0);
+        gameState = GameState.STAGE_SELECT;
     }
 
     private void update(float delta) {
@@ -122,6 +131,15 @@ public class Main extends ApplicationAdapter {
             case TITLE:
                 if (titleScreen.update()) {
                     restartGame();
+                }
+                return;
+            case STAGE_SELECT:
+                int chosenStage = stageSelect.update(delta, WORLD_WIDTH, WORLD_HEIGHT);
+                if (chosenStage >= 0) {
+                    gameAudio.playClick();
+                    startStage(chosenStage);
+                } else if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+                    gameState = GameState.TITLE;
                 }
                 return;
             case SKILL_CARD:
@@ -332,6 +350,7 @@ public class Main extends ApplicationAdapter {
         disposeDrop();
         playerSkills.dispose();
         gameHud.dispose();
+        stageSelect.dispose();
         floatingPlatforms.dispose();
         titleScreen.dispose();
         gameAudio.dispose();

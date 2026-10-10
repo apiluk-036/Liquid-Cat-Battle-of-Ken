@@ -135,5 +135,6 @@ Boss แต่ละตัวมีรูปเดียว จึงทำแ�
 - `DevilBoss.java`, `TeacherBoss.java`, `HackerBoss.java`: Boss ด่าน 1, 2 และ 3 (ลำดับด่านอยู่ใน `Main.createBoss`)
 - `BossLaser.java`: เลเซอร์แบบเล็งผู้เล่น, สุ่ม 1 เส้น, สุ่ม 2 เส้น และแบบ 3 ช่องเว้นช่องปลอดภัย
 - `SkillType.java`, `PlayerSkills.java`, `SkillDrop.java`: สกิลที่ดรอป การเก็บ และการใช้งาน
+- `StageSelectScreen.java`: หน้าเลือกด่านก่อนสู้ Boss (คลิกหลอดแก้วแล้วกด PUSH START) ด่านที่ยังไม่มี Boss จะล็อกไว้
 - `GameHud.java`: หลอด HP ของ Boss, จำนวนการโจมตีที่เหลือ, ช่องสกิล, การ์ด Get skill, หน้าชนะ/แพ้
 - `assets/boss/`, `assets/skills/`: รูป Boss และไอคอนสกิล
