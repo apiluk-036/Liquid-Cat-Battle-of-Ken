@@ -9,9 +9,14 @@ import com.badlogic.gdx.math.Rectangle;
  * - targeted(): 1 beam at the player's height every 15 s (every boss).
  * - randomPair(): 2 beams, one low and one high, at random heights every 5 s.
  * - randomSingle(): 1 beam at a random height every 5 s.
+ * - lanes(): 3 beams on 4 lanes (ground + 3 platform heights) every 5 s,
+ *   one lane is always left safe (shown in green) so the player can dodge.
  */
 public class BossLaser {
-    private static final float WARNING_TIME = 1.2f;
+    private static final float DEFAULT_WARNING_TIME = 1.2f;
+    private static final float LANES_WARNING_TIME = 1.5f;
+    /** Center height of the cat body on the ground and on each platform level. */
+    private static final float[] LANE_CENTERS = {104f, 188f, 274f, 360f};
     private static final float FIRE_TIME = 0.5f;
     private static final float BEAM_THICKNESS = 34f;
     private static final float LOW_MIN_Y = 60f;
@@ -24,6 +29,9 @@ public class BossLaser {
     private final float interval;
     private final float firstDelay;
     private final boolean randomHeights;
+    private final boolean lanes;
+    private final float warningTime;
+    private float safeLaneY;
     private final int damage;
     private final float[] beamYs;
 
@@ -35,9 +43,16 @@ public class BossLaser {
     private final Rectangle beam = new Rectangle();
 
     private BossLaser(float interval, float firstDelay, int beamCount, boolean randomHeights, int damage) {
+        this(interval, firstDelay, beamCount, randomHeights, false, damage);
+    }
+
+    private BossLaser(float interval, float firstDelay, int beamCount, boolean randomHeights, boolean lanes,
+                      int damage) {
         this.interval = interval;
         this.firstDelay = firstDelay;
         this.randomHeights = randomHeights;
+        this.lanes = lanes;
+        this.warningTime = lanes ? LANES_WARNING_TIME : DEFAULT_WARNING_TIME;
         this.damage = damage;
         this.beamYs = new float[beamCount];
         this.timer = firstDelay;
@@ -49,6 +64,10 @@ public class BossLaser {
 
     public static BossLaser randomSingle() {
         return new BossLaser(5f, 3f, 1, true, 20);
+    }
+
+    public static BossLaser lanes() {
+        return new BossLaser(5f, 3f, LANE_CENTERS.length - 1, true, true, 20);
     }
 
     public static BossLaser randomPair() {
@@ -68,7 +87,7 @@ public class BossLaser {
                 break;
             case WARNING:
                 stateTime += delta;
-                if (stateTime >= WARNING_TIME) {
+                if (stateTime >= warningTime) {
                     state = State.FIRING;
                     stateTime = 0f;
                     hasHitPlayer = false;
@@ -90,6 +109,18 @@ public class BossLaser {
     }
 
     private void chooseBeamHeights(Player player) {
+        if (lanes) {
+            int safeLane = MathUtils.random(LANE_CENTERS.length - 1);
+            int beam = 0;
+            for (int lane = 0; lane < LANE_CENTERS.length; lane++) {
+                if (lane == safeLane) {
+                    safeLaneY = LANE_CENTERS[lane];
+                } else {
+                    beamYs[beam++] = LANE_CENTERS[lane];
+                }
+            }
+            return;
+        }
         if (!randomHeights) {
             beamYs[0] = player.getCenterY();
             return;
@@ -118,6 +149,9 @@ public class BossLaser {
 
     /** Call inside shapeRenderer.begin(Filled) with blending enabled. */
     public void draw(ShapeRenderer shapeRenderer) {
+        if (lanes && state == State.WARNING) {
+            drawSafeLane(shapeRenderer);
+        }
         for (float beamY : beamYs) {
             if (state == State.WARNING) {
                 drawWarning(shapeRenderer, beamY);
@@ -134,6 +168,16 @@ public class BossLaser {
         shapeRenderer.setColor(1f, 0.2f, 0.2f, 0.9f);
         shapeRenderer.rect(0f, beamY - 1.5f, beamEndX, 3f);
         drawWarningSign(shapeRenderer, 40f, beamY, blinkOn);
+    }
+
+    private void drawSafeLane(ShapeRenderer shapeRenderer) {
+        boolean blinkOn = ((int) (stateTime * 6f)) % 2 == 0;
+        shapeRenderer.setColor(0.3f, 1f, 0.5f, blinkOn ? 0.22f : 0.1f);
+        shapeRenderer.rect(0f, safeLaneY - BEAM_THICKNESS / 2f, beamEndX, BEAM_THICKNESS);
+        shapeRenderer.setColor(0.3f, 1f, 0.5f, 0.9f);
+        for (float arrowX = 80f; arrowX < beamEndX - 40f; arrowX += 160f) {
+            shapeRenderer.triangle(arrowX, safeLaneY + 9f, arrowX, safeLaneY - 9f, arrowX + 14f, safeLaneY);
+        }
     }
 
     private void drawBeam(ShapeRenderer shapeRenderer, float beamY) {

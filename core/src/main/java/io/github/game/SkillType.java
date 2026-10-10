@@ -5,7 +5,9 @@ public enum SkillType {
     GIANT_CANDY("Giant Candy", "OOP", "skills/candy.png", "F", 10f,
         "Throw a giant candy forward", "Damage 50", "Cooldown 10 s"),
     SHIELD("Shield", "Dis", "skills/shield.png", "Q", 5f,
-        "Protect area around you", "Invincible 3 s", "Cooldown 5 s");
+        "Protect area around you", "Invincible 3 s", "Cooldown 5 s"),
+    CODE_BREATH("Code Breath", "Web", "skills/code.png", "C", 15f,
+        "Breathe a wave of code", "Cuts boss HP in half", "Cooldown 15 s");
 
     public final String displayName;
     public final String subject;
