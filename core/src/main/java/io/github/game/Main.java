@@ -22,8 +22,8 @@ public class Main extends ApplicationAdapter {
 
     private static final int STAGE_COUNT = 3;
 
-    /** PLAYING -> BOSS_DEFEATED (walk to the drop) -> SKILL_CARD -> next stage or CHAMPION. */
-    private enum GameState { PLAYING, BOSS_DEFEATED, SKILL_CARD, CHAMPION, LOSE }
+    /** TITLE -> PLAYING -> BOSS_DEFEATED (walk to the drop) -> SKILL_CARD -> next stage or CHAMPION. */
+    private enum GameState { TITLE, PLAYING, BOSS_DEFEATED, SKILL_CARD, CHAMPION, LOSE }
 
     private SpriteBatch spriteBatch;
     private Texture backgroundTexture;
@@ -42,6 +42,8 @@ public class Main extends ApplicationAdapter {
     private SkillDrop skillDrop;
     private SkillType collectedSkill;
     private int stageIndex;
+    private GameAudio gameAudio;
+    private TitleScreen titleScreen;
 
     @Override
     public void create() {
@@ -62,6 +64,9 @@ public class Main extends ApplicationAdapter {
         startStage(0);
         floatingPlatforms = new FloatingPlatforms();
         gameWorld.addOneWayPlatforms(floatingPlatforms.getSurfaces());
+        gameAudio = new GameAudio();
+        titleScreen = new TitleScreen(WORLD_WIDTH, WORLD_HEIGHT, gameAudio);
+        gameState = GameState.TITLE;
     }
 
     private Texture loadTextureIfExists(String... paths) {
@@ -114,6 +119,11 @@ public class Main extends ApplicationAdapter {
 
     private void update(float delta) {
         switch (gameState) {
+            case TITLE:
+                if (titleScreen.update()) {
+                    restartGame();
+                }
+                return;
             case SKILL_CARD:
                 if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)
                     || gameHud.isNextClicked(WORLD_WIDTH, WORLD_HEIGHT)) {
@@ -128,6 +138,8 @@ public class Main extends ApplicationAdapter {
             case LOSE:
                 if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
                     restartGame();
+                } else if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+                    gameState = GameState.TITLE;
                 }
                 return;
             default:
@@ -238,6 +250,10 @@ public class Main extends ApplicationAdapter {
 
     private void drawWorld() {
         ScreenUtils.clear(0.08f, 0.12f, 0.14f, 1f);
+        if (gameState == GameState.TITLE) {
+            titleScreen.draw(spriteBatch);
+            return;
+        }
 
         if (backgroundTexture != null) {
             spriteBatch.begin();
@@ -317,6 +333,8 @@ public class Main extends ApplicationAdapter {
         playerSkills.dispose();
         gameHud.dispose();
         floatingPlatforms.dispose();
+        titleScreen.dispose();
+        gameAudio.dispose();
         catAnimation.dispose();
         spriteBatch.dispose();
     }

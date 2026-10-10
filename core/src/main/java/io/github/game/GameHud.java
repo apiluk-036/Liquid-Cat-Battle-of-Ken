@@ -196,7 +196,7 @@ public class GameHud {
         drawCentered(spriteBatch, bigFont, "GAME OVER", worldWidth / 2f, worldHeight / 2f + 60f);
         font.setColor(Color.WHITE);
         drawCentered(spriteBatch, font, "All skills are lost", worldWidth / 2f, worldHeight / 2f);
-        drawCentered(spriteBatch, font, "Press R to start over", worldWidth / 2f, worldHeight / 2f - 30f);
+        drawCentered(spriteBatch, font, "R = start over   ESC = menu", worldWidth / 2f, worldHeight / 2f - 30f);
         spriteBatch.end();
     }
 
@@ -228,7 +228,7 @@ public class GameHud {
         bigFont.setColor(TEXT_DARK);
         drawCentered(spriteBatch, bigFont, "You are champion", worldWidth / 2f, panelY + 100f);
         font.setColor(TEXT_DARK);
-        drawCentered(spriteBatch, font, "Skills: " + skills.getOwned().size() + "   Press R to play again",
+        drawCentered(spriteBatch, font, "Skills: " + skills.getOwned().size() + "   R = play again   ESC = menu",
             worldWidth / 2f, panelY + 34f);
         spriteBatch.end();
     }
