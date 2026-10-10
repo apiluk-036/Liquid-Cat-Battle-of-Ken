@@ -53,11 +53,13 @@ public final class TeacherBoss extends Boss {
         candyTimer -= delta;
         if (candyTimer <= 0f) {
             throwCandy(CANDY_SIZE, CANDY_FLIGHT_TIME, CANDY_DAMAGE);
+            playCastAnimation(0.6f, true);
             candyTimer = CANDY_INTERVAL;
         }
         giantTimer -= delta;
         if (giantTimer <= 0f) {
             throwCandy(GIANT_SIZE, GIANT_FLIGHT_TIME, GIANT_DAMAGE);
+            playCastAnimation(1f, true);
             giantTimer = GIANT_INTERVAL;
         }
 

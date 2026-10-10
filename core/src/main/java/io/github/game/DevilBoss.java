@@ -54,6 +54,7 @@ public final class DevilBoss extends Boss {
         if (magmaTimer <= 0f) {
             float landingX = MathUtils.random(20f, x - 60f);
             magmas.add(new Magma(landingX));
+            playCastAnimation(0.45f, false);
             magmaTimer = MAGMA_INTERVAL;
         }
 
@@ -89,6 +90,7 @@ public final class DevilBoss extends Boss {
         if (shieldTimer <= 0f) {
             shieldRemaining = SHIELD_DURATION;
             shieldTimer = SHIELD_INTERVAL;
+            playCastAnimation(1f, false);
         }
     }
 
@@ -118,9 +120,23 @@ public final class DevilBoss extends Boss {
                 drawMagmaBall(shapeRenderer, magma);
             }
         }
+        drawFlameGlow(shapeRenderer);
         if (isShielded()) {
             drawShield(shapeRenderer);
         }
+    }
+
+    /** Flickering glow on the flame on top of the head. */
+    private void drawFlameGlow(ShapeRenderer shapeRenderer) {
+        float heightRatio = 0.9f;
+        float flameX = x + width * 0.42f + getWobbleOffset(heightRatio);
+        float flameY = y + height * heightRatio;
+        float flicker = 0.75f + 0.25f * MathUtils.sin(effectTime * 17f)
+            + 0.1f * MathUtils.sin(effectTime * 31f);
+        shapeRenderer.setColor(1f, 0.45f, 0.05f, 0.18f * flicker);
+        shapeRenderer.circle(flameX, flameY, 30f * flicker);
+        shapeRenderer.setColor(1f, 0.8f, 0.3f, 0.22f * flicker);
+        shapeRenderer.circle(flameX, flameY - 4f, 16f * flicker);
     }
 
     private void drawLandingMark(ShapeRenderer shapeRenderer, Magma magma) {

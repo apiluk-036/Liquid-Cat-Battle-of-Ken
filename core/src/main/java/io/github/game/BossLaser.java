@@ -157,6 +157,15 @@ public class BossLaser {
         shapeRenderer.rect(cx - 1.5f, cy - 7f, 3f, 3f);
     }
 
+    /** Warning line is showing (the boss is charging). */
+    public boolean isCharging() {
+        return state == State.WARNING;
+    }
+
+    public boolean isFiring() {
+        return state == State.FIRING;
+    }
+
     public void reset() {
         state = State.IDLE;
         timer = firstDelay;
