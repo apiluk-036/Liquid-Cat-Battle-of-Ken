@@ -13,7 +13,7 @@ import com.badlogic.gdx.math.Rectangle;
 import java.util.EnumMap;
 import java.util.Map;
 
-/** Boss HP bar, attack shots (5 status), skill slots, "Get skill" card and win / lose screens. */
+/** Boss HP bar, attack shots (5 status), skill slots, "Get skill" card and champion screen. */
 public class GameHud {
     private static final float BOSS_BAR_WIDTH = 300f;
     private static final float BOSS_BAR_HEIGHT = 18f;
@@ -187,17 +187,6 @@ public class GameHud {
         float clickX = Gdx.input.getX() * (worldWidth / Gdx.graphics.getWidth());
         float clickY = worldHeight - Gdx.input.getY() * (worldHeight / Gdx.graphics.getHeight());
         return nextButton.contains(clickX, clickY);
-    }
-
-    public void drawGameOver(SpriteBatch spriteBatch, float worldWidth, float worldHeight) {
-        drawDim(worldWidth, worldHeight);
-        spriteBatch.begin();
-        bigFont.setColor(Color.SCARLET);
-        drawCentered(spriteBatch, bigFont, "GAME OVER", worldWidth / 2f, worldHeight / 2f + 60f);
-        font.setColor(Color.WHITE);
-        drawCentered(spriteBatch, font, "All skills are lost", worldWidth / 2f, worldHeight / 2f);
-        drawCentered(spriteBatch, font, "R = start over   ESC = menu", worldWidth / 2f, worldHeight / 2f - 30f);
-        spriteBatch.end();
     }
 
     public void drawChampion(SpriteBatch spriteBatch, PlayerSkills skills, float worldWidth, float worldHeight) {

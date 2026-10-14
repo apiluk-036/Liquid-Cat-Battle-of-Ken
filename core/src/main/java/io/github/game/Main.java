@@ -23,10 +23,13 @@ public class Main extends ApplicationAdapter {
     private static final int STAGE_COUNT = 3;
 
     /**
-     * TITLE -> STAGE_SELECT -> PLAYING -> BOSS_DEFEATED (walk to the drop) -> SKILL_CARD
-     * -> next stage or CHAMPION.
+     * TITLE -> STAGE_SELECT -> READY (controls shown, waits for ENTER / click) -> PLAYING
+     * -> BOSS_DEFEATED (walk to the drop) -> SKILL_CARD -> next stage or CHAMPION.
+     * HOW_TO_PLAY is the manual opened from the stage select.
      */
-    private enum GameState { TITLE, STAGE_SELECT, PLAYING, BOSS_DEFEATED, SKILL_CARD, CHAMPION, LOSE }
+    private enum GameState {
+        TITLE, STAGE_SELECT, HOW_TO_PLAY, READY, PLAYING, BOSS_DEFEATED, SKILL_CARD, CHAMPION, LOSE
+    }
 
     private SpriteBatch spriteBatch;
     private Texture backgroundTexture;
@@ -41,11 +44,17 @@ public class Main extends ApplicationAdapter {
     private Boss boss;
     private GameHud gameHud;
     private StageSelectScreen stageSelect;
+    private HowToPlayScreen howToPlay;
+    private GameOverScreen gameOver;
+    private PauseMenu pauseMenu;
+    private StageIntro stageIntro;
     private GameState gameState = GameState.TITLE;
     private PlayerSkills playerSkills;
     private SkillDrop skillDrop;
     private SkillType collectedSkill;
     private int stageIndex;
+    /** Stages can be beaten in any order; champion only once every boss is down. */
+    private final boolean[] stageCleared = new boolean[STAGE_COUNT];
     private GameAudio gameAudio;
     private TitleScreen titleScreen;
 
@@ -66,11 +75,15 @@ public class Main extends ApplicationAdapter {
         gameHud = new GameHud();
         playerSkills = new PlayerSkills();
         stageSelect = new StageSelectScreen(WORLD_WIDTH, WORLD_HEIGHT, STAGE_COUNT);
+        howToPlay = new HowToPlayScreen(WORLD_WIDTH, WORLD_HEIGHT);
+        gameOver = new GameOverScreen(WORLD_WIDTH, WORLD_HEIGHT);
+        stageIntro = new StageIntro(WORLD_WIDTH, WORLD_HEIGHT);
         startStage(0);
         floatingPlatforms = new FloatingPlatforms();
         gameWorld.addOneWayPlatforms(floatingPlatforms.getSurfaces());
         gameAudio = new GameAudio();
         titleScreen = new TitleScreen(WORLD_WIDTH, WORLD_HEIGHT, gameAudio);
+        pauseMenu = new PauseMenu(WORLD_WIDTH, WORLD_HEIGHT, gameAudio);
         gameState = GameState.TITLE;
     }
 
@@ -88,6 +101,8 @@ public class Main extends ApplicationAdapter {
         update(Gdx.graphics.getDeltaTime());
         if (gameState == GameState.STAGE_SELECT) {
             stageSelect.draw(spriteBatch, gameHud.getShapeRenderer());
+        } else if (gameState == GameState.HOW_TO_PLAY) {
+            howToPlay.draw(spriteBatch, gameHud.getShapeRenderer());
         } else {
             drawWorld();
         }
@@ -104,7 +119,7 @@ public class Main extends ApplicationAdapter {
         return new HackerBoss(WORLD_WIDTH, GROUND_Y);
     }
 
-    /** Starts a stage. Collected skills are kept. */
+    /** Starts a stage. Collected skills are kept. The fight waits on the READY panel first. */
     private void startStage(int index) {
         if (boss != null) {
             boss.dispose();
@@ -117,20 +132,40 @@ public class Main extends ApplicationAdapter {
         playerSkills.resetForStage();
         collectedSkill = null;
         catIdleTime = 0f;
-        gameState = GameState.PLAYING;
+        gameState = GameState.READY;
     }
 
     /** Lose = back to the stage select, and every collected skill is lost. */
     private void restartGame() {
+        resetProgress();
+        openStageSelect();
+    }
+
+    /** Forgets beaten bosses and collected skills. BACK to the title keeps them; losing or finishing does not. */
+    private void resetProgress() {
         playerSkills.clearAll();
+        java.util.Arrays.fill(stageCleared, false);
+    }
+
+    private void openStageSelect() {
+        stageSelect.open(stageCleared);
         gameState = GameState.STAGE_SELECT;
+    }
+
+    private boolean allStagesCleared() {
+        for (boolean cleared : stageCleared) {
+            if (!cleared) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void update(float delta) {
         switch (gameState) {
             case TITLE:
                 if (titleScreen.update()) {
-                    restartGame();
+                    openStageSelect();
                 }
                 return;
             case STAGE_SELECT:
@@ -138,30 +173,68 @@ public class Main extends ApplicationAdapter {
                 if (chosenStage >= 0) {
                     gameAudio.playClick();
                     startStage(chosenStage);
-                } else if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+                } else if (chosenStage == StageSelectScreen.BACK) {
+                    gameAudio.playClick();
                     gameState = GameState.TITLE;
+                } else if (chosenStage == StageSelectScreen.HOW_TO_PLAY) {
+                    gameAudio.playClick();
+                    howToPlay.open();
+                    gameState = GameState.HOW_TO_PLAY;
+                }
+                return;
+            case HOW_TO_PLAY:
+                if (howToPlay.update(delta)) {
+                    gameAudio.playClick();
+                    gameState = GameState.STAGE_SELECT;
+                }
+                return;
+            case READY:
+                catIdleTime += delta;
+                if (stageIntro.update(delta)) {
+                    gameAudio.playClick();
+                    gameState = GameState.PLAYING;
                 }
                 return;
             case SKILL_CARD:
                 if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)
                     || gameHud.isNextClicked(WORLD_WIDTH, WORLD_HEIGHT)) {
-                    if (stageIndex + 1 < STAGE_COUNT) {
-                        startStage(stageIndex + 1);
+                    if (!allStagesCleared()) {
+                        // Pick any boss that is left.
+                        openStageSelect();
                     } else {
                         gameState = GameState.CHAMPION;
                     }
                 }
                 return;
-            case CHAMPION:
             case LOSE:
+                GameOverScreen.Action choice = gameOver.update(delta);
+                if (choice == GameOverScreen.Action.YES) {
+                    gameAudio.playClick();
+                    restartGame();
+                } else if (choice == GameOverScreen.Action.NO) {
+                    gameAudio.playClick();
+                    resetProgress();
+                    gameState = GameState.TITLE;
+                }
+                return;
+            case CHAMPION:
                 if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
                     restartGame();
                 } else if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+                    resetProgress();
                     gameState = GameState.TITLE;
                 }
                 return;
             default:
                 break;
+        }
+
+        if (pauseMenu.update() == PauseMenu.Action.EXIT) {
+            openStageSelect();
+            return;
+        }
+        if (pauseMenu.isOpen()) {
+            return;
         }
 
         handleInput(delta);
@@ -193,6 +266,7 @@ public class Main extends ApplicationAdapter {
             skillDrop = new SkillDrop(boss.getRewardSkill(), boss.getCenterX() - 60f, boss.getCenterY());
             gameState = GameState.BOSS_DEFEATED;
         } else if (player.isDead()) {
+            gameOver.open();
             gameState = GameState.LOSE;
         }
     }
@@ -200,6 +274,7 @@ public class Main extends ApplicationAdapter {
     private void updateDropPickup(float delta) {
         skillDrop.update(delta);
         if (skillDrop.isTouching(player)) {
+            stageCleared[stageIndex] = true;
             collectedSkill = skillDrop.getSkill();
             playerSkills.add(collectedSkill);
             disposeDrop();
@@ -313,13 +388,18 @@ public class Main extends ApplicationAdapter {
         }
 
         gameHud.draw(spriteBatch, boss, skillEffect, playerSkills, stageIndex + 1, WORLD_WIDTH, WORLD_HEIGHT);
-        if (gameState == GameState.SKILL_CARD && collectedSkill != null) {
-            gameHud.drawSkillCard(spriteBatch, collectedSkill, stageIndex + 1 < STAGE_COUNT,
+        if (gameState == GameState.PLAYING || gameState == GameState.BOSS_DEFEATED) {
+            pauseMenu.draw(spriteBatch, shapeRenderer);
+        }
+        if (gameState == GameState.READY) {
+            stageIntro.draw(spriteBatch, shapeRenderer, boss, playerSkills, stageIndex + 1);
+        } else if (gameState == GameState.SKILL_CARD && collectedSkill != null) {
+            gameHud.drawSkillCard(spriteBatch, collectedSkill, !allStagesCleared(),
                 WORLD_WIDTH, WORLD_HEIGHT);
         } else if (gameState == GameState.CHAMPION) {
             gameHud.drawChampion(spriteBatch, playerSkills, WORLD_WIDTH, WORLD_HEIGHT);
         } else if (gameState == GameState.LOSE) {
-            gameHud.drawGameOver(spriteBatch, WORLD_WIDTH, WORLD_HEIGHT);
+            gameOver.draw(spriteBatch, shapeRenderer);
         }
     }
 
@@ -351,6 +431,10 @@ public class Main extends ApplicationAdapter {
         playerSkills.dispose();
         gameHud.dispose();
         stageSelect.dispose();
+        howToPlay.dispose();
+        gameOver.dispose();
+        pauseMenu.dispose();
+        stageIntro.dispose();
         floatingPlatforms.dispose();
         titleScreen.dispose();
         gameAudio.dispose();
