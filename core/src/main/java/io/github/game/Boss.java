@@ -49,6 +49,8 @@ public abstract class Boss {
     private float deathTimer;
     private float shakeX;
     private boolean wasFiring;
+    /** Set when an attack starts, read once by Main to play the attack sound. */
+    private boolean attackStarted;
 
     private final Texture texture;
     private final BossLaser laser;
@@ -86,6 +88,7 @@ public abstract class Boss {
         shakeX = laser.isCharging() ? MathUtils.random(-2.5f, 2.5f) : 0f;
         if (laser.isFiring() && !wasFiring) {
             recoilTimer = RECOIL_TIME;
+            attackStarted = true;
         }
         wasFiring = laser.isFiring();
     }
@@ -99,6 +102,14 @@ public abstract class Boss {
         castTimer = CAST_TIME;
         castStrength = strength;
         castLean = lean;
+        attackStarted = true;
+    }
+
+    /** True once after the boss starts an attack (every special skill plays the cast pose, plus the laser). */
+    public boolean pollAttackStarted() {
+        boolean started = attackStarted;
+        attackStarted = false;
+        return started;
     }
 
     private void moveUpAndDown(float delta) {
@@ -240,6 +251,7 @@ public abstract class Boss {
         recoilTimer = 0f;
         deathTimer = 0f;
         wasFiring = false;
+        attackStarted = false;
         laser.reset();
         resetSpecialSkill();
     }

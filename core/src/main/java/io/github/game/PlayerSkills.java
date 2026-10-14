@@ -58,9 +58,10 @@ public class PlayerSkills {
         return remaining == null ? 0f : remaining;
     }
 
-    public void use(SkillType skill, Player player) {
+    /** Returns true if the skill was used (false if not owned or still cooling down). */
+    public boolean use(SkillType skill, Player player) {
         if (!has(skill) || getCooldown(skill) > 0f) {
-            return;
+            return false;
         }
         if (skill == SkillType.SHIELD) {
             player.activateShield(SHIELD_DURATION);
@@ -74,6 +75,7 @@ public class PlayerSkills {
             candies.add(new CandyShot(startX, startY, player.facing, true));
         }
         cooldowns.put(skill, skill.cooldown);
+        return true;
     }
 
     public void update(float delta, Boss boss, float worldWidth) {

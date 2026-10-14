@@ -42,7 +42,8 @@ public class SkillEffect {
             : new Animation<>(FRAME_DURATION, frames, Animation.PlayMode.LOOP);
     }
 
-    public void start(Player player) {
+    /** Returns true if a shot was fired (false while cooling down or reloading). */
+    public boolean start(Player player) {
         if (animation != null && cooldownRemaining <= 0f && reloadRemaining <= 0f) {
             activeEffects.add(new ActiveEffect(player));
             cooldownRemaining = COOLDOWN;
@@ -50,7 +51,9 @@ public class SkillEffect {
             if (shotsLeft <= 0) {
                 reloadRemaining = RELOAD_TIME;
             }
+            return true;
         }
+        return false;
     }
 
     /** Removes every attack that touches the target and returns how many hit. */

@@ -53,6 +53,9 @@ public class Main extends ApplicationAdapter {
     private SkillDrop skillDrop;
     private SkillType collectedSkill;
     private int stageIndex;
+    /** HP last frame, to play a hurt sound whenever it drops. */
+    private int lastPlayerHp;
+    private int lastBossHp;
     /** Stages can be beaten in any order; champion only once every boss is down. */
     private final boolean[] stageCleared = new boolean[STAGE_COUNT];
     private GameAudio gameAudio;
@@ -132,6 +135,8 @@ public class Main extends ApplicationAdapter {
         playerSkills.resetForStage();
         collectedSkill = null;
         catIdleTime = 0f;
+        lastPlayerHp = player.getHp();
+        lastBossHp = boss.getHp();
         gameState = GameState.READY;
     }
 
@@ -247,6 +252,9 @@ public class Main extends ApplicationAdapter {
         player.x = Math.max(0f, Math.min(rightLimit - player.getBodyRightOffset(), player.x));
         skillEffect.update(delta, WORLD_WIDTH);
         boss.update(delta, player);
+        if (boss.pollAttackStarted()) {
+            gameAudio.playBossAttack();
+        }
         playerSkills.update(delta, boss, WORLD_WIDTH);
 
         if (gameState == GameState.PLAYING) {
@@ -254,6 +262,18 @@ public class Main extends ApplicationAdapter {
         } else if (gameState == GameState.BOSS_DEFEATED) {
             updateDropPickup(delta);
         }
+        playHurtSounds();
+    }
+
+    private void playHurtSounds() {
+        if (player.getHp() < lastPlayerHp) {
+            gameAudio.playPlayerHurt();
+        }
+        if (boss.getHp() < lastBossHp) {
+            gameAudio.playBossHurt();
+        }
+        lastPlayerHp = player.getHp();
+        lastBossHp = boss.getHp();
     }
 
     private void updateCombat() {
@@ -320,17 +340,21 @@ public class Main extends ApplicationAdapter {
         if (Gdx.input.isKeyJustPressed(Input.Keys.J)) {
             player.setHp(player.getHp() + 10);
         }
+        boolean attacked = false;
         if (Gdx.input.isKeyJustPressed(Input.Keys.E)) {
-            skillEffect.start(player);
+            attacked |= skillEffect.start(player);
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.Q)) {
-            playerSkills.use(SkillType.SHIELD, player);
+            attacked |= playerSkills.use(SkillType.SHIELD, player);
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.F)) {
-            playerSkills.use(SkillType.GIANT_CANDY, player);
+            attacked |= playerSkills.use(SkillType.GIANT_CANDY, player);
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.C)) {
-            playerSkills.use(SkillType.CODE_BREATH, player);
+            attacked |= playerSkills.use(SkillType.CODE_BREATH, player);
+        }
+        if (attacked) {
+            gameAudio.playPlayerAttack();
         }
     }
 

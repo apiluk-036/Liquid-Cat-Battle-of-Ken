@@ -190,7 +190,11 @@ flowchart TD
 | **GAME OVER** | สไตล์ตู้เกม "CONTINUE ?" เลือก **YES** (กลับหน้าเลือกด่าน) / **NO** (กลับหน้าแรก) ด้วย A/D + ENTER, Y / N หรือคลิก | `GameOverScreen.java` |
 | **You are champion** | ขึ้นเมื่อชนะครบ 3 ตัว แสดงสกิลทั้งหมดที่เก็บได้ กด **R** เล่นใหม่ หรือ **ESC** กลับหน้าแรก | `GameHud.java` |
 
-เพลง `bgfighting.mp3` เล่นวนตลอดเกม
+### เสียง
+- เพลง `bgfighting.mp3` เล่นวนตลอดเกม
+- เสียงโจมตี: `player_attack.wav` (แมวกด E หรือใช้สกิล) และ `boss_attack.wav` (Boss ยิงเลเซอร์หรือใช้สกิลพิเศษ)
+- เสียงโดนดาเมจ: `player_hurt.wav` (HP แมวลด) และ `boss_hurt.wav` (HP Boss ลด)
+- ระดับเสียงปรับได้ที่ SETTINGS (Sound) เปลี่ยนเสียงได้โดยวางไฟล์ชื่อเดิมทับใน `assets/sounds/`
 
 ---
 
@@ -227,7 +231,7 @@ core/src/main/java/io/github/game/
 ├── SkillDrop.java          ไอเท็มสกิลที่ Boss ดรอป
 ├── GameHud.java            HUD, การ์ด Get skill, หน้า champion
 ├── TitleScreen.java        หน้าแรก + Settings
-├── GameAudio.java          เพลงและเสียงคลิก
+├── GameAudio.java          เพลง เสียงคลิก เสียงโจมตีและเสียงโดนดาเมจ
 ├── StageSelectScreen.java  หน้าเลือกด่าน (CLEARED / LOCKED)
 ├── HowToPlayScreen.java    คู่มือการเล่น
 ├── StageIntro.java         หน้า Get ready ก่อนสู้
