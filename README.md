@@ -63,6 +63,7 @@ gradlew.bat lwjgl3:run
 | **Y / N** | เล่นต่อ / ออก (หน้า Game Over) |
 | **R** | เล่นใหม่ (หน้า champion) |
 | **ESC** (ในเมนู) | ย้อนกลับ |
+| **H / J** (ระหว่างสู้) | ลด / เพิ่ม HP ผู้เล่นครั้งละ 10 (ปุ่มสำหรับทดสอบ) |
 
 ---
 
@@ -180,7 +181,7 @@ flowchart TD
 | หน้าจอ | รายละเอียด | ไฟล์ |
 |---|---|---|
 | **หน้าแรก (Title)** | โลโก้ + ปุ่ม **PLAY** และ **SETTINGS** (ชี้แล้วขยาย กดแล้วหด มีเสียงคลิก) ย้ายมาจาก branch `Game` (JavaFX ของ N'Game) แล้วเขียนใหม่ด้วย libGDX | `TitleScreen.java` |
-| **Settings** | กรอบไม้ ปรับเสียงเพลง (Music) และเสียงคลิก (Sound) ด้วยแถบเลื่อนหรือปุ่ม - / + | `TitleScreen.java`, `GameAudio.java` |
+| **Settings** | กรอบไม้ ปรับเสียงเพลง (Music) และเสียงเอฟเฟกต์ (Sound: เสียงคลิก เสียงโจมตี เสียงโดนดาเมจ) ด้วยแถบเลื่อนหรือปุ่ม - / + | `TitleScreen.java`, `GameAudio.java` |
 | **เลือกด่าน (Stage select)** | คลิกหลอดแก้ว (หรือ A/D) แล้วกด **PUSH START** (หรือ ENTER) หลอดที่เลือกมีแสงสีเขียวรอบ ๆ, Boss ที่ชนะแล้วขึ้น **CLEARED** เลือกไม่ได้, ปุ่ม **BACK** กลับหน้าแรก, ไอคอน **i** เปิดคู่มือ | `StageSelectScreen.java`, `CyberButton.java` |
 | **How to play** | คู่มือ: ปุ่มควบคุม, ระบบต่อสู้, วิธีเล่น และข้อมูล Boss ทั้ง 3 ตัว เลื่อนด้วย mouse wheel, W/S หรือลากแถบเลื่อน | `HowToPlayScreen.java` |
 | **Get ready** | ขึ้นก่อนเริ่มสู้ทุกด่าน แสดงปุ่มควบคุมและคำแนะนำ เกมจะหยุดรอจนกด ENTER หรือคลิก | `StageIntro.java` |
@@ -190,7 +191,12 @@ flowchart TD
 | **GAME OVER** | สไตล์ตู้เกม "CONTINUE ?" เลือก **YES** (กลับหน้าเลือกด่าน) / **NO** (กลับหน้าแรก) ด้วย A/D + ENTER, Y / N หรือคลิก | `GameOverScreen.java` |
 | **You are champion** | ขึ้นเมื่อชนะครบ 3 ตัว แสดงสกิลทั้งหมดที่เก็บได้ กด **R** เล่นใหม่ หรือ **ESC** กลับหน้าแรก | `GameHud.java` |
 
-เพลง `bgfighting.mp3` เล่นวนตลอดเกม
+### เสียง
+- เพลง `bgfighting.mp3` เล่นวนตลอดเกม
+- เสียงคลิกปุ่มในเมนู: `click.mp3`
+- เสียงโจมตี: `player_attack.wav` (แมวกด E หรือใช้สกิล) และ `boss_attack.wav` (Boss ยิงเลเซอร์หรือใช้สกิลพิเศษ)
+- เสียงโดนดาเมจ: `player_hurt.wav` (HP แมวลด) และ `boss_hurt.wav` (HP Boss ลด)
+- ระดับเสียงปรับได้ที่ SETTINGS (Sound) เปลี่ยนเสียงได้โดยวางไฟล์ชื่อเดิมทับใน `assets/sounds/`
 
 ---
 
@@ -227,7 +233,7 @@ core/src/main/java/io/github/game/
 ├── SkillDrop.java          ไอเท็มสกิลที่ Boss ดรอป
 ├── GameHud.java            HUD, การ์ด Get skill, หน้า champion
 ├── TitleScreen.java        หน้าแรก + Settings
-├── GameAudio.java          เพลงและเสียงคลิก
+├── GameAudio.java          เพลง เสียงคลิก เสียงโจมตีและเสียงโดนดาเมจ
 ├── StageSelectScreen.java  หน้าเลือกด่าน (CLEARED / LOCKED)
 ├── HowToPlayScreen.java    คู่มือการเล่น
 ├── StageIntro.java         หน้า Get ready ก่อนสู้
